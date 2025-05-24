@@ -12,6 +12,8 @@ on:
         description: '清理的工作流名称'
         required: true
         default: 'Build OnePlus13'
+        options:
+          - Build OnePlus13
       count:
         description: '最多清理的运行次数'
         required: false
