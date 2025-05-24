@@ -27,8 +27,6 @@ on:
        description: "内核构建日期更改"
        required: true
        default: '2024-12-17 23:36:49 UTC'
-       options: 
-       - 2024-12-17 23:36:49 UTC
       KERNEL_NAME:
         description: "内核名称(不填默认参数)"
         required: false
