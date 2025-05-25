@@ -23,9 +23,13 @@ on:
         required: true
         default: '6.6'
       KERNEL_NAME:
-        description: "内核名称(不填默认参数)"
-        required: false
+        description: "内核名称修改(中文不行)"
+        required: true
         default: '-android15-8-g013ec21bba94-abogki383916444'
+      KERNEL_TIME:
+       description: "内核构建日期更改(默认为原厂)"
+       required: true
+       default: '2024-12-17 23:36:49 UTC'
       enable_feature_x:
        description: "是否启用kpm"
        required: false
@@ -34,19 +38,19 @@ on:
       enable_feature_y:
        description: "是否启用lz4kd"
        required: false
-       default: false
+       default: true
        type: boolean
       enable_feature_z:
        description: "是否添加风驰驱动"
        required: false
-       default: true
+       default: false
        type: boolean
       
        
 
 
 jobs:
-  build:
+  Build OnePlus13_susfs:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -65,7 +69,7 @@ jobs:
           
       - name: Configure Git
         run: |
-         git config --global user.name "build OnePlus13"
+         git config --global user.name "huabaiya"
          git config --global user.email "564070684@qq.com"
 
       - name: Install dependencies
@@ -122,7 +126,89 @@ jobs:
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
+      
+      - name: Apply HMBird GKI patch
+        run: |
+         cd kernel_workspace/kernel_platform/common/drivers
+         cat << 'EOF' > hmbird_patch.c
+         #include <linux/init.h>
+         #include <linux/module.h>
+         #include <linux/of.h>
+         #include <linux/slab.h>
+         #include <linux/string.h>
 
+         static int __init hmbird_patch_init(void)
+         {
+             struct device_node *ver_np;
+             const char *type;
+             int ret;
+
+             ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
+             if (!ver_np) {
+                  pr_info("hmbird_patch: version_type node not found\n");
+                  return 0;
+             }
+
+             ret = of_property_read_string(ver_np, "type", &type);
+             if (ret) {
+                  pr_info("hmbird_patch: type property not found\n");
+                  of_node_put(ver_np);
+                  return 0;
+             }
+
+             if (strcmp(type, "HMBIRD_OGKI")) {
+                  of_node_put(ver_np);
+                  return 0;
+             }
+
+             struct property *prop = of_find_property(ver_np, "type", NULL);
+             if (prop) {
+                  struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
+                  if (!new_prop) {
+                       pr_info("hmbird_patch: kmalloc for new_prop failed\n");
+                       of_node_put(ver_np);
+                       return 0;
+             }
+             memcpy(new_prop, prop, sizeof(*prop));
+             new_prop->value = kmalloc(strlen("HMBIRD_GKI") + 1, GFP_KERNEL);
+             if (!new_prop->value) {
+                  pr_info("hmbird_patch: kmalloc for new_prop->value failed\n");
+                  kfree(new_prop);
+                  of_node_put(ver_np);
+                  return 0;
+            }
+            strcpy(new_prop->value, "HMBIRD_GKI");
+            new_prop->length = strlen("HMBIRD_GKI") + 1;
+
+            if (of_remove_property(ver_np, prop) != 0) {
+                 pr_info("hmbird_patch: of_remove_property failed\n");
+                 return 0;
+            }
+            if (of_add_property(ver_np, new_prop) !=0) {
+                 pr_info("hmbird_patch: of_add_property failed\n");
+                 return 0;
+            }
+            pr_info("hmbird_patch: success from HMBIRD_OGKI to HMBIRD_GKI\n");
+         }
+         else {
+             pr_info("hmbird_patch: type property structure not found\n");
+         }
+         of_node_put(ver_np);
+         return 0;
+         }
+         early_initcall(hmbird_patch_init);
+         MODULE_LICENSE("GPL");
+         MODULE_AUTHOR("reigadegr");
+         MODULE_DESCRIPTION("Forcefully convert HMBIRD_OGKI to HMBIRD_GKI.");
+         EOF
+         if ! grep -q "hmbird_patch.o" Makefile; then
+         echo "obj-y += hmbird_patch.o" >> Makefile
+         fi
+         cd ../../../
+         git add -A
+         git commit -m "Add HMBird GKI patch" || true
+
+ 
       - name: Apply lz4kd Patches
         if: ${{inputs.enable_feature_y }}
         run: |
@@ -214,7 +300,7 @@ jobs:
          
       - name: Make AnyKernel3
         run: |
-         git clone https://github.com/HanKuCha/AnyKernel3.git --depth=1      
+         git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1      
          rm -rf ./AnyKernel3/.git
          rm -rf ./AnyKernel3/push.sh
          cp kernel_workspace/kernel_platform/dist/Image ./AnyKernel3/
@@ -224,4 +310,3 @@ jobs:
         with:
          name: SuKiSu_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
          path: ./AnyKernel3/*
-         
