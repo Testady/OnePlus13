@@ -2,35 +2,11 @@ name: Build OnePlus13
 on:
   workflow_dispatch:
     inputs:
-      CPU:
-        description: "分支"
+      KERNEL_SUFFIX:
+        description: '内核名称修改(可改中文和emoji)'
         required: true
-        default: 'sm8750'
-      FEIL:
-        description: "配置文件"
-        required: true
-        default: 'oneplus_13'
-      CPUD:
-        description: "处理器代号"
-        required: true
-        default: 'sun'
-      ANDROID_VERSION:
-        description: "内核安卓版本"
-        required: true
-        default: 'android15'
-      KERNEL_VERSION:
-        description: "内核版本"
-        required: true
-        default: '6.6'
-      KERNEL_NAME:
-        description: "内核名称修改(中文不行)"
-        required: true
-        default: '-android15-8-g013ec21bba94-abogki383916444'
+        default: '-酷安FutabaWa'
       KERNEL_TIME:
-       description: "内核构建日期更改(默认为原厂)"
-       required: true
-       default: '2024-12-17 23:36:49 UTC'
-      enable_feature_x:
        description: "是否启用kpm"
        required: false
        default: false
@@ -43,19 +19,21 @@ on:
       enable_feature_z:
        description: "是否添加风驰驱动"
        required: false
-       default: false
+       default: true
        type: boolean
       
        
 
 
-jobs:
-  OnePlus13-gki-susfs:
+OnePlus13 gki_susfs:
+  build:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
+      CCACHE_DIR: /home/runner/.ccache  
+      CCACHE_MAXSIZE: 8G
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
@@ -74,8 +52,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-         sudo apt update && sudo apt upgrade -y
-         sudo apt install -y python3 git curl
+          sudo apt update && sudo apt upgrade -y
+          sudo apt install -y python3 git curl
+          sudo apt install -y python3 git curl ccache
+
+      - name: Restore ccache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.ccache
+          key: ccache-${{ runner.os }}-${{ github.ref }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
 
       - name: Install repo tool
         run: |
@@ -86,7 +73,7 @@ jobs:
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/OnePlusOSS/kernel_manifest.git -b refs/heads/oneplus/${{ github.event.inputs.CPU }} -m ${{ github.event.inputs.FEIL }}.xml --depth=1
+         repo init -u https://github.com/HanKuCha/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m JiuGeFaCai_oneplus_13_v.xml --depth=1
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
@@ -100,15 +87,16 @@ jobs:
          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
          export KSU_VERSION=$KSU_VERSION
          sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+      
         
       - name: Set up susfs
         run: |
            cd kernel_workspace
-           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}
+           git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
            git clone https://github.com/ShirkNeko/SukiSU_patch.git
 
            cd kernel_platform        
-           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch ./common/
+           cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
            cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
            cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
            #lz4k
@@ -119,10 +107,10 @@ jobs:
            # Apply patches
            cd ./common
 
-           sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
-           sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch
+           sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
+           sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
 
-           patch -p1 < 50_add_susfs_in_gki-${{ github.event.inputs.ANDROID_VERSION }}-${{ github.event.inputs.KERNEL_VERSION }}.patch || true
+           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
            cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
            patch -p1 -F 3 < syscall_hooks.patch
            echo "完成"
@@ -213,7 +201,7 @@ jobs:
         if: ${{inputs.enable_feature_y }}
         run: |
           cd kernel_workspace/kernel_platform/common
-            cp ../../SukiSU_patch/other/zram/zram_patch/${{ github.event.inputs.KERNEL_VERSION }}/lz4kd.patch ./
+            cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
             patch -p1 -F 3 < lz4kd.patch || true
            
       - name: Add SUSFS Configuration Settings
@@ -246,6 +234,7 @@ jobs:
           echo "CONFIG_CRYPTO_LZ4K=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_LZ4KD=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
           
           #Remove check_defconfig
           sudo sed -i 's/check_defconfig//' ./common/build.config.gki
@@ -266,9 +255,9 @@ jobs:
       - name: Add make name
         run: |
          cd kernel_workspace/kernel_platform
-         sed -i 's/res="\$res\$(cat "\$file")"/res="-android15-8-g013ec21bba94-abogki383916444"/g' ./common/scripts/setlocalversion
-         sudo sed -i 's/-android15-8-g013ec21bba94-abogki383916444/${{ github.event.inputs.KERNEL_NAME }}/g' ./common/scripts/setlocalversion
-
+         sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
+         sudo sed -i 's/-4k/${{ github.event.inputs.KERNEL_SUFFIX }}/g' ./common/arch/arm64/configs/gki_defconfig
+      
       - name: Add sched_ext
         if: ${{inputs.enable_feature_z }}
         run: |
@@ -277,21 +266,20 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
-         
-      - name: Set Kernel build timestamp
-        run: |
-          export SOURCE_DATE_EPOCH=$(date -d "${{ github.event.inputs.KERNEL_TIME }}" +%s)
-          echo "SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH" >> $GITHUB_ENV
           
+
       - name: Build Kernel
         run: |
-           export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}
-           cd kernel_workspace/kernel_platform
-           tools/bazel run --config=fast --config=stamp --lto=thin //common:kernel_aarch64_dist -- --dist_dir=dist
-
-      - name: Apply patch_linux and replace Image
+          export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
+          export PATH="/home/runner/work/oneplus13_a5p_sukisu/oneplus13_a5p_sukisu/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+          export PATH="/usr/lib/ccache:$PATH"
+          sudo apt install libelf-dev
+          cd kernel_workspace/kernel_platform/common
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld  HOSTLD=ld.lld O=out KCFLAGS+=-Wno-error gki_defconfig all
+          
+      - name: Apply Linux Patch
         run: |
-         cd kernel_workspace/kernel_platform/dist/
+         cd kernel_workspace/kernel_platform/common/out/arch/arm64/boot
          curl -LO https://github.com/ShirkNeko/SukiSU_KernelPatch_patch/releases/download/0.11-beta/patch_linux
          chmod +x patch_linux
          ./patch_linux
@@ -303,10 +291,10 @@ jobs:
          git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1      
          rm -rf ./AnyKernel3/.git
          rm -rf ./AnyKernel3/push.sh
-         cp kernel_workspace/kernel_platform/dist/Image ./AnyKernel3/
+         cp kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image ./AnyKernel3/
 
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-         name: SuKiSu_${{ env.KSUVER }}_${{ github.event.inputs.FEIL }}
+         name: SuKiSu_${{ env.KSUVER }}_oneplus_13
          path: ./AnyKernel3/*
