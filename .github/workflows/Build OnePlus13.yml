@@ -25,7 +25,7 @@ on:
        
 
 jobs:
-  OnePlus13 gki_susfs:
+  OnePlus13_gki_susfs:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
