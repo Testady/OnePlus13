@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       KERNEL_SUFFIX:
-        description: '内核名称修改'
+        description: '内核名称修改(可改中文和emoji)'
         required: true
         default: '-android15-8-g013ec21bba94-abogki383916444'
       KERNEL_TIME:
@@ -76,7 +76,7 @@ jobs:
       - name: Initialize repo and sync
         run: |
          mkdir kernel_workspace && cd kernel_workspace
-         repo init -u https://github.com/Testady/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m oneplus_13.xml --depth=1
+         repo init -u https://github.com/Testady/kernel_manifest.git -b refs/heads/oneplus/sm8750 -m JiuGeFaCai_oneplus_13_v.xml --depth=1
          repo --trace sync -c -j$(nproc --all) --no-tags
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
@@ -298,5 +298,5 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-         name: OnePlus_13_${{ env.KSUVER }}
+         name: OnePlus13_${{ env.KSUVER }}
          path: ./AnyKernel3/*
