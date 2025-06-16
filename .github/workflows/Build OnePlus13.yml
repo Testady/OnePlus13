@@ -5,7 +5,7 @@ on:
       KERNEL_SUFFIX:
         description: '内核名称'
         required: true
-        default: '-android15-8-g013ec21bba94-abogki383916444'
+        default: '-android15-8-g013ec21bba94-abogki383916444-4k'
       KERNEL_TIME:
        description: "是否启用kpm"
        required: false
