@@ -245,12 +245,21 @@ jobs:
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
           
-      - name: Add make name
+      - name: Set kernel name
         run: |
-         cd kernel_workspace/kernel_platform
-         sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
-         sudo sed -i 's/-4k/${{ github.event.inputs.KERNEL_SUFFIX }}/g' ./common/arch/arm64/configs/gki_defconfig
-
+          cd kernel_workspace/kernel_platform/common
+          
+          # 创建自定义版本配置文件
+          cat << EOF > ./arch/arm64/configs/localversion.config
+          CONFIG_LOCALVERSION="${{ github.event.inputs.KERNEL_SUFFIX }}"
+          CONFIG_LOCALVERSION_AUTO=n
+          EOF
+          
+          # 包含到主配置
+          echo "source \"arch/arm64/configs/localversion.config\"" >> ./arch/arm64/configs/gki_defconfig
+          # 禁用自动版本生成
+          sed -i 's/${scm_version}//' ./scripts/setlocalversion
+          
       - name: Add sched_ext
         if: ${{inputs.enable_feature_z }}
         run: |
