@@ -14,6 +14,7 @@ on:
         default: 'Build OnePlus13'
         options:
           - Build OnePlus13
+          - OnePlus13 next
       count:
         description: '最多清理的运行次数'
         required: false
