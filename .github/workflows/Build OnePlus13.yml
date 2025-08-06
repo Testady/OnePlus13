@@ -26,7 +26,7 @@ on:
 
 
 jobs:
-  OnePlus13-susfs-gki:
+  Sukisu-OnePlus13:
     runs-on: ubuntu-latest
     steps:
       - name: Maximize build space
