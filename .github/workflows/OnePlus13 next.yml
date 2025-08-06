@@ -1,4 +1,4 @@
-name: Build OnePlus13
+name: OnePlus13 next
 on:
   workflow_dispatch:
     inputs:
@@ -26,7 +26,7 @@ on:
 
 
 jobs:
-  OnePlus13-susfs-gki:
+  Next-OnePlus13:
     runs-on: ubuntu-latest
     steps:
       - name: Maximize build space
@@ -63,7 +63,7 @@ jobs:
          rm kernel_platform/common/android/abi_gki_protected_exports_* || echo "No protected exports!"
          rm kernel_platform/msm-kernel/android/abi_gki_protected_exports_* || echo "No protected exports!"
          
-      - name: Set up SukiSU
+      - name: Set up Next
         run: |
          cd kernel_workspace/kernel_platform
          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s next
