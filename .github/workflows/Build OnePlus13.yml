@@ -390,6 +390,14 @@ jobs:
          echo "Modified kernel version:"
          grep -E '^VERSION|^PATCHLEVEL|^SUBLEVEL|^EXTRAVERSION' Makefile
 
+      - name: Fix TRACE_INCLUDE_PATH conflict
+        run: |
+         cd kernel_workspace/kernel_platform/common
+         # 添加宏保护
+         sed -i '1i#ifndef TRACE_INCLUDE_PATH' include/trace/node/sys/call_check.h
+         sed -i '2i#define TRACE_INCLUDE_PATH /fixed/path' include/trace/node/sys/call_check.h
+         sed -i '3i#endif' include/trace/node/sys/call_check.h
+
       - name: Build Kernel
         run: |
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
