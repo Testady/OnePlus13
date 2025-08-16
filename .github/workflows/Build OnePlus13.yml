@@ -100,16 +100,7 @@ jobs:
            cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
            cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
            cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
-           # Apply patches
-           cd ./common
-
-           sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
-           sed -i '/#include <trace\/hooks\/fs.h>/d' 50_add_susfs_in_gki-android15-6.6.patch
-
-           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
-           cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
-           patch -p1 -F 3 < syscall_hooks.patch
-           echo "完成"
+           
       
       - name: Apply HMBird GKI patch
         run: |
@@ -343,15 +334,15 @@ jobs:
 
           # HOOK配置
           if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
-            echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> "$CONFIG_FILE"
-            echo "CONFIG_KPROBES=y" >> "$CONFIG_FILE"
-            echo "CONFIG_KSU_KPROBES_HOOK=y" >> "$CONFIG_FILE"
+            echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KPROBES=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_KPROBES_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ github.event.inputs.HOOK }}" = "manual" ]; then
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
-            echo "CONFIG_KSU_MANUAL_HOOK=y" >> "$CONFIG_FILE"
+            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_MANUAL_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ github.event.inputs.HOOK }}" = "tracepoint" ]; then
-            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> "$CONFIG_FILE"
-            echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> "$CONFIG_FILE" 
+            echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           fi
           
       - name: Add KPM Configuration Settings
