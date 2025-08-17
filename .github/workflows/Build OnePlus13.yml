@@ -347,6 +347,14 @@ jobs:
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
 
+          # LZ4 1.10.0
+          echo "CONFIG_LZ4V2_COMPRESS=y" >> "$CONFIG_FILE"
+          echo "CONFIG_LZ4V2_HC=y" >> "$CONFIG_FILE"
+          echo "CONFIG_LZ4V2_DEBUG=n" >> "$CONFIG_FILE"
+          if [ "${{ github.event.inputs.ZRAM }}" = "true" ]; then
+            echo "CONFIG_ZRAM_LZ4V2=y" >> "$CONFIG_FILE"
+          fi
+
           
           
       - name: Add KPM Configuration Settings
