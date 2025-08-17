@@ -14,7 +14,7 @@ on:
         type: choice
         description: "钩子选择"
         required: true
-        default: tracepoint
+        default: manual
         options:
           - kprobe
           - manual
@@ -347,13 +347,7 @@ jobs:
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
 
-          # LZ4 1.10.0
-          echo "CONFIG_LZ4V2_COMPRESS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_LZ4V2_HC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_LZ4V2_DEBUG=n" >> ./common/arch/arm64/configs/gki_defconfig
-          if [ "${{ github.event.inputs.ZRAM }}" = "true" ]; then
-            echo "CONFIG_ZRAM_LZ4V2=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
+          
 
           
           
