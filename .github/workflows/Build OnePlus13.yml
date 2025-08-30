@@ -376,19 +376,7 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
-      - name: Modify kernel version to 6.6.66
-        run: |
-         cd kernel_workspace/kernel_platform/common
-         # 修改内核主版本号
-         sed -i 's/^VERSION = .*/VERSION = 6/' Makefile
-         sed -i 's/^PATCHLEVEL = .*/PATCHLEVEL = 6/' Makefile
-         sed -i 's/^SUBLEVEL = .*/SUBLEVEL = 66/' Makefile
-         # 清除额外版本号
-         sed -i 's/^EXTRAVERSION = .*/EXTRAVERSION =/' Makefile
-         # 确认修改
-         echo "Modified kernel version:"
-         grep -E '^VERSION|^PATCHLEVEL|^SUBLEVEL|^EXTRAVERSION' Makefile
-
+      
 
       - name: Build Kernel
         run: |
