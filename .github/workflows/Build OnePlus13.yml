@@ -37,7 +37,7 @@ on:
        
 
 jobs:
-  OnePlus13-gki.yml:
+  OnePlus13-gki:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
