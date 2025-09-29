@@ -1,24 +1,24 @@
-name: Build OnePlus13
+name: oneplus_13
 on:
   workflow_dispatch:
     inputs:
       KERNEL_SUFFIX:
-        description: '内核名称'
+        description: '内核名称修改'
         required: true
         default: '-android15-8-g4dc61d72e02f-abogki415959920-4k'
       KERNEL_TIME:
        description: "内核构建日期更改(默认为原厂)"
        required: true
-       default: 'Mon May 17 09:36:49 UTC 2025'
+       default: 'Tue Dec 17 23:36:49 UTC 2024'
       HOOK:
-        type: choice
-        description: "钩子选择"
-        required: true
-        default: manual
-        options:
-          - kprobe
-          - manual
-          - tracepoint
+       description: "钩子选择"
+       required: true
+       default: manual
+       options:
+         - kprobe
+         - manual
+         - tracepoint
+       type: boolean
       enable_feature_x:
        description: "是否启用kpm"
        required: false
@@ -38,8 +38,14 @@ on:
 
 
 jobs:
-  Sukisu-OnePlus13:
+  build:
     runs-on: ubuntu-latest
+    env:
+      CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
+      CCACHE_NOHASHDIR: "true"
+      CCACHE_HARDLINK: "true"
+      CCACHE_DIR: /home/runner/.ccache  
+      CCACHE_MAXSIZE: 8G
     steps:
       - name: Maximize build space
         uses: easimon/maximize-build-space@master
@@ -53,13 +59,22 @@ jobs:
           
       - name: Configure Git
         run: |
-         git config --global user.name "Testady"
+         git config --global user.name "huabaiya"
          git config --global user.email "564070684@qq.com"
 
       - name: Install dependencies
         run: |
           sudo apt update && sudo apt upgrade -y
           sudo apt install -y python3 git curl
+          sudo apt install -y python3 git curl ccache
+
+      - name: Restore ccache
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.ccache
+          key: ccache-${{ runner.os }}-${{ github.ref }}
+          restore-keys: |
+            ccache-${{ runner.os }}-
 
       - name: Install repo tool
         run: |
@@ -80,17 +95,17 @@ jobs:
          cd kernel_workspace/kernel_platform
          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s susfs-main
          cd ./KernelSU
-         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10606)
+         KSU_VERSION=$(expr $(/usr/bin/git rev-list --count main) "+" 10700)
          echo "KSUVER=$KSU_VERSION" >> $GITHUB_ENV
          export KSU_VERSION=$KSU_VERSION
-         sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile      
-
-                    
+         sed -i "s/DKSU_VERSION=12800/DKSU_VERSION=${KSU_VERSION}/" kernel/Makefile
+      
+        
       - name: Set up susfs
         run: |
            cd kernel_workspace
            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
-           git clone https://github.com/Testady/SukiSU_patch.git
+           git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
 
            cd kernel_platform        
            cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
@@ -101,7 +116,7 @@ jobs:
            cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./common/lib
            cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./common/crypto
            cp -r ../SukiSU_patch/other/zram/lz4k_oplus ./common/lib/
-
+           # Apply patches
            cd ./common
 
            sed -i 's/-32,12 +32,38/-32,11 +32,37/g' 50_add_susfs_in_gki-android15-6.6.patch
@@ -109,7 +124,6 @@ jobs:
 
            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
            
-
            if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
            echo "调用 kprobe 钩子"
            elif [ "${{ github.event.inputs.HOOK }}" = "manual" ]; then
@@ -122,6 +136,7 @@ jobs:
            patch -p1 -F 3 < tracepoint_hooks.patch
            fi
            echo "完成"
+           
       - name: Apply HMBird GKI patch
         run: |
          cd kernel_workspace/kernel_platform/common/drivers
@@ -202,7 +217,6 @@ jobs:
          cd ../../../
          git add -A
          git commit -m "Add HMBird GKI patch" || true
-         
 
  
       - name: Apply lz4kd Patches
@@ -211,83 +225,12 @@ jobs:
           cd kernel_workspace/kernel_platform/common
             cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
             patch -p1 -F 3 < lz4kd.patch || true
-
-      - name: Upgrade LZ4
-        run: |
-          LZ4_VERSION="1.10.0"
-          LZ4_DOWNLOAD_URL="https://github.com/lz4/lz4/archive/refs/tags/v${LZ4_VERSION}.tar.gz"
-          cd kernel_workspace/kernel_platform/common
-          mkdir -p lz4_temp && cd lz4_temp
-          echo "下载LZ4 ${LZ4_VERSION}源码..."
-          curl -Ls "${LZ4_DOWNLOAD_URL}" -o lz4.tar.gz
-          tar -zxf lz4.tar.gz --strip-components=1
-
-          # 复制文件并使用独立命名，避免与LZ4K冲突
-          echo "复制LZ4文件到内核目录..."
-          # 源码文件（添加"lz4v2_"前缀）
-          cp lib/lz4.c ../lib/lz4v2_core.c
-          cp lib/lz4.h ../lib/lz4v2_core.h
-          cp lib/lz4hc.c ../lib/lz4v2_hc.c
-          cp lib/lz4hc.h ../lib/lz4v2_hc.h
-          # 头文件（放在独立路径）
-          mkdir -p ../include/linux/lz4v2
-          cp lib/lz4.h ../include/linux/lz4v2/lz4.h
-          cp lib/lz4hc.h ../include/linux/lz4v2/lz4hc.h
-
-          # 全局重命名函数和宏（彻底隔离命名空间）
-          echo "重命名符号以避免冲突..."
-          # 核心压缩函数重命名
-          sed -i 's/LZ4_compress_default/lz4v2_compress_default/g' ../lib/lz4v2_core.c ../lib/lz4v2_core.h
-          sed -i 's/LZ4_decompress_safe/lz4v2_decompress_safe/g' ../lib/lz4v2_core.c ../lib/lz4v2_core.h
-          # HC高压缩函数重命名
-          sed -i 's/LZ4_compress_HC/lz4v2_compress_HC/g' ../lib/lz4v2_hc.c ../lib/lz4v2_hc.h
-          # 内部宏和辅助函数重命名
-          sed -i 's/LZ4_/LZ4V2_/g' ../lib/lz4v2_core.c ../lib/lz4v2_core.h ../lib/lz4v2_hc.c ../lib/lz4v2_hc.h
-          
-          # 添加内核兼容性适配
-          echo "添加内核适配代码..."
-          # 引入内核必要头文件
-          sed -i '1i#include <linux/types.h>' ../lib/lz4v2_core.c
-          sed -i '2i#include <linux/kernel.h>' ../lib/lz4v2_core.c
-          sed -i '3i#include <linux/module.h>' ../lib/lz4v2_core.c
-          # HC文件同样处理
-          sed -i '1i#include <linux/types.h>' ../lib/lz4v2_hc.c
-          sed -i '2i#include <linux/kernel.h>' ../lib/lz4v2_hc.c
-          sed -i '3i#include <linux/module.h>' ../lib/lz4v2_hc.c
-
-          # 添加模块声明（符合内核规范）
-          echo "添加模块元数据..."
-          cat >> ../lib/lz4v2_core.c << 'EOF'
-          MODULE_LICENSE("GPL");
-          MODULE_DESCRIPTION("LZ4 1.10.0 Compression (v2)");
-          MODULE_AUTHOR("LZ4 Project");
-          EXPORT_SYMBOL(lz4v2_compress_default);
-          EXPORT_SYMBOL(lz4v2_decompress_safe);
-          EOF
-
-          cat >> ../lib/lz4v2_hc.c << 'EOF'
-          MODULE_LICENSE("GPL");
-          MODULE_DESCRIPTION("LZ4HC 1.10.0 Compression (v2)");
-          MODULE_AUTHOR("LZ4 Project");
-          EXPORT_SYMBOL(lz4v2_compress_HC);
-          EOF
-
-          # 更新Makefile确保编译（独立于LZ4K）
-          echo "更新Makefile配置..."
-          if ! grep -q "lz4v2_core.o" ../lib/Makefile; then
-            echo "obj-\$(CONFIG_LZ4V2_COMPRESS) += lz4v2_core.o" >> ../lib/Makefile
-            echo "obj-\$(CONFIG_LZ4V2_COMPRESS) += lz4v2_hc.o" >> ../lib/Makefile
-          fi
-
-          # 清理临时文件
-          cd .. && rm -rf lz4_temp
-          echo "LZ4 ${LZ4_VERSION}集成完成（与LZ4K兼容）"
            
       - name: Add SUSFS Configuration Settings
         run: |
           cd kernel_workspace/kernel_platform
           echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-
+          
           # HOOK配置
           if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
             echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -300,7 +243,8 @@ jobs:
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           fi
-                
+          
+
           # Add SUSFS configuration settings
           echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -324,33 +268,21 @@ jobs:
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
 
-          # TMPFS配置*
-          echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
-
-          # BBR配置*
+          # Add BBR
           echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TCP_CONG_BIC=n" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_CUBIC=n" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
-
-          # ECN配置*
-          echo "CONFIG_IP_ECN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_ECN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IPV6_ECN=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_NF_TARGET_ECN=y" >> ./common/arch/arm64/configs/gki_defconfig        
-                    
+          echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
+          
           #Remove check_defconfig
           sudo sed -i 's/check_defconfig//' ./common/build.config.gki
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
-
-          
-
-          
-          
+      
       - name: Add KPM Configuration Settings
         if: ${{inputs.enable_feature_x }}
         run: |
@@ -376,15 +308,15 @@ jobs:
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
-      
 
       - name: Build Kernel
         run: |
           export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
           export PATH="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+          export PATH="/usr/lib/ccache:$PATH"
           sudo apt install libelf-dev
           cd kernel_workspace/kernel_platform/common
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld  HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all  
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld  HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all
           
       - name: Apply Linux Patch
         run: |
@@ -393,8 +325,8 @@ jobs:
          chmod +x patch_linux
          ./patch_linux
          rm -f Image
-         mv oImage Image          
-               
+         mv oImage Image
+         
       - name: Make AnyKernel3
         run: |
          git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1      
@@ -405,5 +337,5 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-         name: OnePlus13_${{ env.KSUVER }}
+         name: SuKiSu_${{ env.KSUVER }}_oneplus_13
          path: ./AnyKernel3/*
