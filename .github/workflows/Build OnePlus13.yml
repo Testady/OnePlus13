@@ -1,4 +1,4 @@
-name: oneplus_13
+name: Build OnePlus13
 on:
   workflow_dispatch:
     inputs:
@@ -36,8 +36,7 @@ on:
        type: boolean
        
 
-
-jobs:
+OnePlus13_gki.yml:
   build:
     runs-on: ubuntu-latest
     env:
