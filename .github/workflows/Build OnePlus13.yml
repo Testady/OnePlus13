@@ -11,6 +11,7 @@ on:
        required: true
        default: 'Tue Dec 17 23:36:49 UTC 2024'
       HOOK:
+       type: choice
        description: "钩子选择"
        required: true
        default: manual
@@ -18,7 +19,6 @@ on:
          - kprobe
          - manual
          - tracepoint
-      type: choice
       enable_feature_x:
        description: "是否启用kpm"
        required: false
@@ -36,8 +36,8 @@ on:
        type: boolean
        
 
-OnePlus13_gki.yml:
-  build:
+jobs:
+  OnePlus13_gki.yml:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
