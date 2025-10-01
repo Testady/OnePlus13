@@ -238,11 +238,11 @@ jobs:
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             cp ./SukiSU_patch/69_hide_stuff.patch ./common/
-            cd ./common
-            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
             cp ./SukiSU_patch/hooks/syscall_hooks.patch ./common/
             cp ./SukiSU_patch/69_hide_stuff.patch ./common/
             cd ./common
+            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
+     
             if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
            echo "调用 kprobe 钩子"
            elif [ "${{ github.event.inputs.HOOK }}" = "manual" ]; then
