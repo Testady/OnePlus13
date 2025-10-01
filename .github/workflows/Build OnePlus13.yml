@@ -268,18 +268,38 @@ jobs:
             patch -p1 -N -F 3 < scope_min_manual_hooks_v1.5.patch || true
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
           fi
-                     
-            
-      - name: Apply lz4kd Patches
-        if: ${{inputs.enable_feature_y }}
+      
+      - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
         run: |
-          cd kernel_workspace/kernel_platform/common
-            cp ../../SukiSU_patch/other/zram/zram_patch/6.6/lz4kd.patch ./
+            echo "正在添加lz4 1.10.0 & zstd 1.5.7补丁…"
+            cd kernel_workspace
+            git clone https://github.com/cctv18/oppo_oplus_realme_sm8750.git
+            cp ./oppo_oplus_realme_sm8750/zram_patch/001-lz4.patch ./common/
+            cp ./oppo_oplus_realme_sm8750/zram_patch/lz4armv8.S ./common/lib
+            cp ./oppo_oplus_realme_sm8750/zram_patch/002-zstd.patch ./common/
+            cd ./common
+            git apply -p1 < 001-lz4.patch || true
+            patch -p1 < 002-zstd.patch || true
+          
+
+      - name: 应用 lz4kd 补丁
+        run: |
+          if: ${{ inputs.enable_feature_y }}
+            echo "正在添加lz4kd补丁…"
+            cd kernel_workspace
+              git clone https://github.com/ShirkNeko/SukiSU_patch.git
+            
+            
+            cp -r ../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
+            cp -r ../SukiSU_patch/other/zram/lz4k/lib/* ./lib
+            cp -r ../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto
+            cp ../SukiSU_patch/other/zram/zram_patch/${{ env.KERNEL_VERSION }}/lz4kd.patch ./
+            cd common
             patch -p1 -F 3 < lz4kd.patch || true
-           
+            
       - name: Add SUSFS Configuration Settings
         run: |
-          cd kernel_workspace/kernel_platform
+          cd kernel_workspace
           echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # HOOK配置
@@ -319,20 +339,55 @@ jobs:
           echo "CONFIG_CRYPTO_842=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
 
-          # Add BBR
-          echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_BIC=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_CUBIC=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_WESTWOOD=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_HTCP=n" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
           
           #Remove check_defconfig
           sudo sed -i 's/check_defconfig//' ./common/build.config.gki
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
+          
+      - name: 启用网络功能增强优化配置
+        run: |
+          cd kernel_workspace
+            echo "CONFIG_BPF_STREAM_PARSER=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_NETFILTER_XT_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_MAX=65534" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_BITMAP_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_BITMAP_IPMAC=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_BITMAP_PORT=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IPMARK=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IPPORTIP=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IPPORTNET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_IPMAC=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_MAC=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_NETPORTNET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_NET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_NETNET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_NETPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_HASH_NETIFACE=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP_SET_LIST_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
+            #启用 IPv6 网络地址转换
+            echo "CONFIG_IP6_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y" >> ./common/arch/arm64/configs/gki_defconfig
+            cd common
+            wget https://github.com/cctv18/oppo_oplus_realme_sm8650/raw/refs/heads/main/other_patch/config.patch
+            patch -p1 -F 3 < config.patch || true
+          
+
+      - name: 添加 BBR 等一系列拥塞控制算法
+        run: |
+            cd kernel_workspace
+            #开启TCP拥塞控制算法控制器（必需）
+            echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_CUBIC=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_VEGAS=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_NV=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_WESTWOOD=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_TCP_CONG_HTCP=y" >> ./common/arch/arm64/configs/gki_defco
       
       - name: 启用Re-Kernel支持
         run: |
@@ -380,7 +435,7 @@ jobs:
       - name: Add KPM Configuration Settings
         if: ${{inputs.enable_feature_x }}
         run: |
-          cd kernel_workspace/kernel_platform
+          cd kernel_workspace
           echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
          
           #Remove check_defconfig
@@ -390,14 +445,14 @@ jobs:
           
       - name: Add make name
         run: |
-         cd kernel_workspace/kernel_platform
+         cd kernel_workspace
          sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
          sudo sed -i 's/-4k/${{ github.event.inputs.KERNEL_SUFFIX }}/g' ./common/arch/arm64/configs/gki_defconfig
 
       - name: Add sched_ext
         if: ${{inputs.enable_feature_z }}
         run: |
-         cd kernel_workspace/kernel_platform/
+         cd kernel_workspace
          git clone https://github.com/HanKuCha/sched_ext.git
          cp -r ./sched_ext/* ./common/kernel/sched
          rm -rf ./sched_ext/.git
@@ -426,7 +481,7 @@ jobs:
           export CCACHE_MAXSIZE="3G"
           echo "sloppiness = time_macros,include_file_mtime" >> "$CCACHE_DIR/ccache.conf"
           
-          cd kernel_workspace/kernel_platform/common
+          cd kernel_workspace/common
           #在构建内核的同时清除不必要的.NET, Android NDK, Haskell, CodeQL运行库，清理空间且不阻塞后续步骤运行
           sudo rm -rf /usr/share/dotnet &
           sudo rm -rf /usr/local/lib/android &
@@ -441,7 +496,7 @@ jobs:
                     
       - name: Apply Linux Patch
         run: |
-         cd kernel_workspace/kernel_platform/common/out/arch/arm64/boot
+         cd kernel_workspace/common/out/arch/arm64/boot
          curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.12.0/patch_linux
          chmod +x patch_linux
          ./patch_linux
@@ -453,7 +508,7 @@ jobs:
          git clone https://github.com/Kernel-SU/AnyKernel3.git --depth=1      
          rm -rf ./AnyKernel3/.git
          rm -rf ./AnyKernel3/push.sh
-         cp kernel_workspace/kernel_platform/common/out/arch/arm64/boot/Image ./AnyKernel3/
+         cp kernel_workspace/common/out/arch/arm64/boot/Image ./AnyKernel3/
 
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
