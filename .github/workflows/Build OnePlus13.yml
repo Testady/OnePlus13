@@ -348,7 +348,7 @@ jobs:
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
 
-- name: 构建内核
+      - name: 构建内核
         run: |
           WORKDIR="$(pwd)"
           export PATH="/usr/lib/ccache:$PATH"
