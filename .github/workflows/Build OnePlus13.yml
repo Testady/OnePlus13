@@ -37,7 +37,7 @@ on:
        
 
 jobs:
-  OnePlus13-gki:
+  OnePlus13_gki.yml:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -282,6 +282,46 @@ jobs:
           cd common
           git add -A && git commit -a -m "BUILD Kernel"
       
+      - name: 启用Re-Kernel支持
+        run: |
+          if [[ "${{ github.event.inputs.adios_rekernel_enable }}" == "2" || "${{ github.event.inputs.adios_rekernel_enable }}" == "3" ]]; then
+            echo "正在启用Re-Kernel支持(用于与Freezer,NoActive等软件配合使用,提升冻结后台能力)…"
+            cd kernel_workspace
+            echo "CONFIG_REKERNEL=y" >> ./common/arch/arm64/configs/gki_defconfig
+          fi
+
+      - name: 启用内核级基带保护
+        run: |
+          if [[ "${{ github.event.inputs.baseband_guard }}" == "true" ]]; then
+            echo "正在启用启用内核级基带保护支持…"
+            cd kernel_workspace
+            echo "CONFIG_BBG=y" >> ./common/arch/arm64/configs/gki_defconfig
+            cd ./common/security
+            wget https://github.com/cctv18/Baseband-guard/archive/refs/heads/master.zip
+            unzip -q master.zip
+            mv "Baseband-guard-master" baseband-guard
+            printf '\nobj-$(CONFIG_BBG) += baseband-guard/\n' >> ./Makefile
+            sed -i '/^config LSM$/,/^help$/{ /^[[:space:]]*default/ { /baseband_guard/! s/landlock/landlock,baseband_guard/ } }' ./Kconfig
+            awk '
+            /endmenu/ { last_endmenu_line = NR }
+            { lines[NR] = $0 }
+            END {
+              for (i=1; i<=NR; i++) {
+                if (i == last_endmenu_line) {
+                  sub(/endmenu/, "", lines[i]);
+                  print lines[i] "source \"security/baseband-guard/Kconfig\""
+                  print ""
+                  print "endmenu"
+                } else {
+                    print lines[i]
+                }
+              }
+            }
+            ' ./Kconfig > Kconfig.tmp && mv Kconfig.tmp ./Kconfig
+            sed -i 's/selinuxfs.o //g' "./selinux/Makefile"
+            cat "./baseband-guard/sepatch.txt" >> "./selinux/Makefile"
+          fi
+          
       - name: Add KPM Configuration Settings
         if: ${{inputs.enable_feature_x }}
         run: |
@@ -308,15 +348,42 @@ jobs:
          rm -rf ./sched_ext/.git
          cd common/kernel/sched
 
-      - name: Build Kernel
+- name: 构建内核
         run: |
-          export KBUILD_BUILD_TIMESTAMP="${{ github.event.inputs.KERNEL_TIME }}"
-          export PATH="$GITHUB_WORKSPACE/kernel_workspace/kernel_platform/prebuilts/clang/host/linux-x86/clang-r510928/bin:$PATH"
+          WORKDIR="$(pwd)"
           export PATH="/usr/lib/ccache:$PATH"
-          sudo apt install libelf-dev
-          cd kernel_workspace/kernel_platform/common
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC=clang RUSTC=../../prebuilts/rust/linux-x86/1.73.0b/bin/rustc PAHOLE=../../prebuilts/kernel-build-tools/linux-x86/bin/pahole LD=ld.lld  HOSTLD=ld.lld O=out KCFLAGS+=-O2 gki_defconfig all
+          export PATH="$WORKDIR/kernel_workspace/clang18/bin:$PATH"
+          export PATH="$WORKDIR/kernel_workspace/build-tools/bin:$PATH"
+          CLANG_DIR="$WORKDIR/kernel_workspace/clang18/bin"
+          CLANG_VERSION="$($CLANG_DIR/clang --version | head -n 1)"
+          LLD_VERSION="$($CLANG_DIR/ld.lld --version | head -n 1)"
+          echo "编译器信息:"
+          echo "Clang版本: $CLANG_VERSION"
+          echo "LLD版本: $LLD_VERSION"
+          pahole_version=$(pahole --version 2>/dev/null | head -n1); [ -z "$pahole_version" ] && echo "pahole版本：未安装" || echo "pahole版本：$pahole_version"
           
+          export CCACHE_LOGFILE="${{ github.workspace }}/kernel_workspace/ccache.log"
+          export CCACHE_COMPILERCHECK="%compiler% -dumpmachine; %compiler% -dumpversion"
+          export CCACHE_BASEDIR="${{ github.workspace }}"
+          export CCACHE_NOHASHDIR="true"
+          export CCACHE_HARDLINK="true"
+          export CCACHE_DIR="${{ env.CCACHE_DIR }}"
+          export CCACHE_MAXSIZE="3G"
+          echo "sloppiness = time_macros,include_file_mtime" >> "$CCACHE_DIR/ccache.conf"
+          
+          cd kernel_workspace/common
+          #在构建内核的同时清除不必要的.NET, Android NDK, Haskell, CodeQL运行库，清理空间且不阻塞后续步骤运行
+          sudo rm -rf /usr/share/dotnet &
+          sudo rm -rf /usr/local/lib/android &
+          sudo rm -rf /opt/ghc &
+          sudo rm -rf /opt/hostedtoolcache/CodeQL &
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD=ld.lld HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error KCFLAGS+=-ferror-limit=0 gki_defconfig Image
+          echo "内核编译完成！"
+          echo "ccache状态："
+          ccache -s
+          echo "编译后空间:"
+          df -h
+                    
       - name: Apply Linux Patch
         run: |
          cd kernel_workspace/kernel_platform/common/out/arch/arm64/boot
