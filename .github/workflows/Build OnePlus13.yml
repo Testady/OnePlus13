@@ -223,8 +223,8 @@ jobs:
       
         
          # 在 "Set up susfs" 步骤中添加目录创建：
-         - name: Set up susfs
-           run: |
+      - name: Set up susfs
+        run: |
            cd kernel_workspace
           # 确保目录存在
            mkdir -p kernel_platform/common
