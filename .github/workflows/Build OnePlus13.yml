@@ -148,7 +148,8 @@ jobs:
           for f in common/scripts/setlocalversion; do
             sed -i 's/ -dirty//g' "$f"
             sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$f"
-          done          
+          done 
+                   
       - name: 添加KernelSU
         id: ksu_version
         run: |
