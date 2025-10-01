@@ -34,11 +34,12 @@ on:
        required: false
        default: false
        type: boolean
-       baseband_guard:
+      baseband_guard:
         description: '是否开启内核级基带保护'
         required: true
+        default: true
         type: boolean
-        default: 'true'
+        
        
 
 jobs:
