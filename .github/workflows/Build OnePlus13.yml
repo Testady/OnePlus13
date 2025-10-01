@@ -222,11 +222,9 @@ jobs:
           fi   
       
         
-         # 在 "Set up susfs" 步骤中添加目录创建：
       - name: Set up susfs
         run: |
            cd kernel_workspace
-          # 确保目录存在
            mkdir -p kernel_platform/common
            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
            git clone https://github.com/SukiSU-Ultra/SukiSU_patch.git
