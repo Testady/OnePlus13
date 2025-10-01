@@ -233,28 +233,26 @@ jobs:
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在添加SukiSU Ultra补丁..."
             git clone https://github.com/ShirkNeko/susfs4ksu.git -b gki-android15-6.6
-            git clone https://github.com/ShirkNeko/SukiSU_patch.git
+            git clone https://github.com/Testady/SukiSU_patch.git
             cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             cp ./SukiSU_patch/69_hide_stuff.patch ./common/
-            cp ./SukiSU_patch/hooks/syscall_hooks.patch ./common/
-            cp ./SukiSU_patch/69_hide_stuff.patch ./common/
             cd ./common
             patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
      
-            if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
-           echo "调用 kprobe 钩子"
-           elif [ "${{ github.event.inputs.HOOK }}" = "manual" ]; then
-           cp ../../SukiSU_patch/hooks/syscall_hooks.patch ./
-           echo "调用 manual 钩子"
-           patch -p1 -F 3 < syscall_hooks.patch
-           elif [ "${{ github.event.inputs.HOOK }}" = "tracepoint" ]; then
-           cp ../../SukiSU_patch/hooks/tracepoint_hooks.patch ./
-           echo "调用 tracepoint 钩子"
-           patch -p1 -F 3 < tracepoint_hooks.patch
+          if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
+            echo "调用 kprobe 钩子"
+            elif [ "${{ github.event.inputs.HOOK }}" = "manual" ]; then
+            cp ./SukiSU_patch/hooks/syscall_hooks.patch ./common/
+            echo "调用 manual 钩子"
+            patch -p1 -F 3 < syscall_hooks.patch
+            elif [ "${{ github.event.inputs.HOOK }}" = "tracepoint" ]; then
+            cp ./SukiSU_patch/hooks/tracepoint_hooks.patch ./common/
+            echo "调用 tracepoint 钩子"
+            patch -p1 -F 3 < tracepoint_hooks.patch
            fi
-           echo "完成"
+            echo "完成"
           else
             echo "正在添加KernelSU Next补丁..."
             git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
@@ -271,17 +269,86 @@ jobs:
           fi
                      
            
-     # OGKI转换GKI，无需修改 dtbo 开机
-      - name: Apply Convert HMBIRD_OGKI to HMBIRD_GKI
-        if: ${{ env.KERNEL_VERSION == '6.6.66' }}
+      - name: Apply HMBird GKI patch
         run: |
-          cd kernel_workspace/kernel_platform/common
-          sed -i '1iobj-y += hmbird_patch.o' drivers/Makefile
-          wget https://github.com/Numbersf/Action-Build/raw/SukiSU-Ultra/patches/hmbird_patch.patch
-          echo "正在打OGKI转换GKI补丁"
-          patch -p1 -F 3 < hmbird_patch.patch
-          echo "OGKI转换GKI_patch完成"
+         cd kernel_workspace/kernel_platform/common/drivers
+         cat << 'EOF' > hmbird_patch.c
+         #include <linux/init.h>
+         #include <linux/module.h>
+         #include <linux/of.h>
+         #include <linux/slab.h>
+         #include <linux/string.h>
 
+         static int __init hmbird_patch_init(void)
+         {
+             struct device_node *ver_np;
+             const char *type;
+             int ret;
+
+             ver_np = of_find_node_by_path("/soc/oplus,hmbird/version_type");
+             if (!ver_np) {
+                  pr_info("hmbird_patch: version_type node not found\n");
+                  return 0;
+             }
+
+             ret = of_property_read_string(ver_np, "type", &type);
+             if (ret) {
+                  pr_info("hmbird_patch: type property not found\n");
+                  of_node_put(ver_np);
+                  return 0;
+             }
+
+             if (strcmp(type, "HMBIRD_OGKI")) {
+                  of_node_put(ver_np);
+                  return 0;
+             }
+
+             struct property *prop = of_find_property(ver_np, "type", NULL);
+             if (prop) {
+                  struct property *new_prop = kmalloc(sizeof(*prop), GFP_KERNEL);
+                  if (!new_prop) {
+                       pr_info("hmbird_patch: kmalloc for new_prop failed\n");
+                       of_node_put(ver_np);
+                       return 0;
+             }
+             memcpy(new_prop, prop, sizeof(*prop));
+             new_prop->value = kmalloc(strlen("HMBIRD_GKI") + 1, GFP_KERNEL);
+             if (!new_prop->value) {
+                  pr_info("hmbird_patch: kmalloc for new_prop->value failed\n");
+                  kfree(new_prop);
+                  of_node_put(ver_np);
+                  return 0;
+            }
+            strcpy(new_prop->value, "HMBIRD_GKI");
+            new_prop->length = strlen("HMBIRD_GKI") + 1;
+
+            if (of_remove_property(ver_np, prop) != 0) {
+                 pr_info("hmbird_patch: of_remove_property failed\n");
+                 return 0;
+            }
+            if (of_add_property(ver_np, new_prop) !=0) {
+                 pr_info("hmbird_patch: of_add_property failed\n");
+                 return 0;
+            }
+            pr_info("hmbird_patch: success from HMBIRD_OGKI to HMBIRD_GKI\n");
+         }
+         else {
+             pr_info("hmbird_patch: type property structure not found\n");
+         }
+         of_node_put(ver_np);
+         return 0;
+         }
+         early_initcall(hmbird_patch_init);
+         MODULE_LICENSE("GPL");
+         MODULE_AUTHOR("reigadegr");
+         MODULE_DESCRIPTION("Forcefully convert HMBIRD_OGKI to HMBIRD_GKI.");
+         EOF
+         if ! grep -q "hmbird_patch.o" Makefile; then
+         echo "obj-y += hmbird_patch.o" >> Makefile
+         fi
+         cd ../../../
+         git add -A
+         git commit -m "Add HMBird GKI patch" || true
  
       - name: Apply lz4kd Patches
         if: ${{inputs.enable_feature_y }}
