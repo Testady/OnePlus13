@@ -284,8 +284,7 @@ jobs:
 
       - name: 应用 lz4kd 补丁
         run: |
-          if: ${{ inputs.enable_feature_y }}
-            echo "正在添加lz4kd补丁…"
+          if [[ "${{ github.event.inputs.enable_feature_y }}" == "true" ]]; then             echo "正在添加lz4kd补丁…"
             cd kernel_workspace
               git clone https://github.com/ShirkNeko/SukiSU_patch.git
             
@@ -296,7 +295,7 @@ jobs:
             cp ../SukiSU_patch/other/zram/zram_patch/${{ env.KERNEL_VERSION }}/lz4kd.patch ./
             cd common
             patch -p1 -F 3 < lz4kd.patch || true
-            
+          fi
       - name: Add SUSFS Configuration Settings
         run: |
           cd kernel_workspace
