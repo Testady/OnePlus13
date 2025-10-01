@@ -34,10 +34,15 @@ on:
        required: false
        default: false
        type: boolean
+       baseband_guard:
+        description: '是否开启内核级基带保护'
+        required: true
+        type: boolean
+        default: 'true'
        
 
 jobs:
-  OnePlus13-gki:
+  OnePlus13_gki:
     runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
@@ -284,11 +289,10 @@ jobs:
       
       - name: 启用Re-Kernel支持
         run: |
-          if [[ "${{ github.event.inputs.adios_rekernel_enable }}" == "2" || "${{ github.event.inputs.adios_rekernel_enable }}" == "3" ]]; then
             echo "正在启用Re-Kernel支持(用于与Freezer,NoActive等软件配合使用,提升冻结后台能力)…"
             cd kernel_workspace
             echo "CONFIG_REKERNEL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
+          
 
       - name: 启用内核级基带保护
         run: |
