@@ -232,14 +232,14 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在添加SukiSU Ultra补丁..."
-            git clone https://github.com/ShirkNeko/susfs4ksu.git -b gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
+            git clone https://github.com/ShirkNeko/susfs4ksu.git -b gki-android15-6.6
             git clone https://github.com/ShirkNeko/SukiSU_patch.git
-            cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
+            cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             cp ./SukiSU_patch/69_hide_stuff.patch ./common/
             cd ./common
-            patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
+            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
             
             if [ "${{ github.event.inputs.HOOK }}" = "kprobe" ]; then
            echo "调用 kprobe 钩子"
@@ -255,15 +255,15 @@ jobs:
            echo "完成"
           else
             echo "正在添加KernelSU Next补丁..."
-            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}
+            git clone https://gitlab.com/simonpunk/susfs4ksu.git -b gki-android15-6.6
             git clone https://github.com/WildKernels/kernel_patches.git
-            cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch ./common/
+            cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             cp ./kernel_patches/next/scope_min_manual_hooks_v1.5.patch ./common/
             cp ./kernel_patches/69_hide_stuff.patch ./common/
             cd ./common
-            patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
+            patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
             patch -p1 -N -F 3 < scope_min_manual_hooks_v1.5.patch || true
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
           fi
