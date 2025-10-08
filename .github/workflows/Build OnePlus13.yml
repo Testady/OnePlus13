@@ -585,3 +585,8 @@ jobs:
           else
             zip -r ../AnyKernel3_${KSU_TYPENAME}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${{ env.KERNEL_NAME }}.zip ./*
           fi
+      - name: Upload AnyKernel3
+        uses: actions/upload-artifact@v4
+        with:
+         name: OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}
+         path: ./AnyKernel3/*
