@@ -580,4 +580,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
          name: OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}
-         path: ./kernel_workspace/AnyKernel3/OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}.zip
+         path: ./kernel_workspace/OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}.zip
