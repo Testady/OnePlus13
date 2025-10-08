@@ -561,7 +561,7 @@ jobs:
             mv oImage Image
           fi
           
-      - name: 克隆 AnyKernel3 并打包
+- name: 克隆 AnyKernel3 并打包
         run: |
           cd kernel_workspace
           git clone https://github.com/cctv18/AnyKernel3 --depth=1
@@ -596,5 +596,5 @@ jobs:
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
         with:
-        name: OnePlus13
-        path: ./kernel_workspace/AnyKernel3/OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}.zip
+        name: OnePlus13_${KSU_TYPENAME}_${{ env.KSUVER }}
+        path: ${{ github.workspace }}/kernel_workspace/AnyKernel*.zip
