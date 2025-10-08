@@ -561,7 +561,7 @@ jobs:
             mv oImage Image
           fi
           
-- name: 克隆 AnyKernel3 并打包
+      - name: 克隆 AnyKernel3 并打包
         run: |
           cd kernel_workspace
           git clone https://github.com/cctv18/AnyKernel3 --depth=1
