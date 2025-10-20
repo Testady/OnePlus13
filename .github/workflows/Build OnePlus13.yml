@@ -18,7 +18,7 @@ on:
           - 'sukisu'
           - 'ksunext'
       hook_method:
-        description: hook模式(大部分情况manual即可，少数需切换sus su模式的场景才需要kprobes钩子, 若新版manual钩子出现问题可尝试syscall)
+        description: hook
         required: true
         type: choice
         default: 'manual'
@@ -327,8 +327,6 @@ jobs:
           fi
           if [ "${{ github.event.inputs.hook_method }}" == "tracepoint" ]; then
             echo "正在开启tracepoint钩子..."
-            echo "CONFIG_KSU_SUSFS_SUS_SU=y" >> ./common/arch/arm64/configs/gki_defconfig
-            echo "CONFIG_KSU_MANUAL_HOOK=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_TRACEPOINT_HOOK=y" >> ./common/arch/arm64/configs/gki_defconfig
           else
             echo "正在开启manual钩子..."
