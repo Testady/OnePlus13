@@ -258,7 +258,7 @@ jobs:
             cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             if [[ ${{ github.event.inputs.hook_method }} == "manual" ]]; then
-              cp ./SukiSU_patch/hooks/scope_min_manual_hooks_v1.5.patch ./common/
+              cp ./SukiSU_patch/hooks/scope_min_manual_hooks_v1.6.patch ./common/
             fi
             if [[ ${{ github.event.inputs.hook_method }} == "tracepoint" ]]; then
               cp ./SukiSU_patch/hooks/sukisu_tracepoint_hooks_v1.1.patch ./common/
@@ -267,7 +267,7 @@ jobs:
             cd ./common
             patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             if [[ ${{ github.event.inputs.hook_method }} == "manual" ]]; then
-              patch -p1 < scope_min_manual_hooks_v1.5.patch || true
+              patch -p1 < scope_min_manual_hooks_v1.6.patch || true
             fi
             if [[ ${{ github.event.inputs.hook_method }} == "tracepoint" ]]; then
               patch -p1 < sukisu_tracepoint_hooks_v1.1.patch || true
@@ -561,7 +561,7 @@ jobs:
       - name: 克隆 AnyKernel3 并打包
         run: |
           cd kernel_workspace
-          git clone https://github.com/cctv18/AnyKernel3 --depth=1
+          git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
           rm -rf ./AnyKernel3/.git
           cd AnyKernel3
           cp ../common/out/arch/arm64/boot/Image ./Image
