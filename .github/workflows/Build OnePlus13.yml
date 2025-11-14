@@ -579,13 +579,6 @@ jobs:
           else
             zip -r ../AnyKernel3_${KSU_TYPENAME}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${{ env.KERNEL_NAME }}.zip ./*
           fi
-
-      - name: 上传 Ccache 调试日志
-        if: always() # 无论成功失败都上传
-        uses: actions/upload-artifact@v4
-        with:
-          name: ccache-debug-log
-          path: ${{ github.workspace }}/kernel_workspace/ccache.log
               
       - name: Upload AnyKernel3
         uses: actions/upload-artifact@v4
