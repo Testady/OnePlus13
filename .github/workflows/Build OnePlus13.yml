@@ -2,7 +2,7 @@ name: Build OnePlus13
 
 env:
   TZ: Asia/Shanghai
-  ANDROID_VERSION: 'android15'
+  ANDROID_VERSION: 'android16'
   KERNEL_VERSION: '6.6'
   KERNEL_NAME: '-android15-8-gf4dc45704e54-abogki446052083-4k'
 
@@ -172,7 +172,7 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在配置SukiSU Ultra..."
-            curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s builtin
+            curl -LSs "https://raw.githubusercontent.com/ShirkNeko/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s susfs-main
             cd ./KernelSU
             # 获取当前 Git 提交的短哈希 (8位)
             GIT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
