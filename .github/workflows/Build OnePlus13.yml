@@ -2,7 +2,7 @@ name: Build OnePlus13
 
 env:
   TZ: Asia/Shanghai
-  ANDROID_VERSION: 'android16'
+  ANDROID_VERSION: 'android15'
   KERNEL_VERSION: '6.6'
   KERNEL_NAME: '-android15-8-gf4dc45704e54-abogki446052083-4k'
 
