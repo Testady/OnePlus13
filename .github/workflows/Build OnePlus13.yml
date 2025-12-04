@@ -165,7 +165,7 @@ jobs:
             echo "ccache缓存命中详情:"
             ccache -sv
           fi
-- name: 添加KernelSU
+      - name: 添加KernelSU
         id: ksu_version
         run: |
           # 进入内核工作目录
