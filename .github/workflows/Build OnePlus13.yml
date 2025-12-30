@@ -4,7 +4,7 @@ env:
   TZ: Asia/Shanghai
   ANDROID_VERSION: 'android15'
   KERNEL_VERSION: '6.6'
-  KERNEL_NAME: '-android15-8-gf4dc45704e54-abogki446052083-4k'
+  KERNEL_NAME: '-android16-8-gf4dc45704e54-abogki446052083-4k'
 
 on:
   workflow_dispatch:
@@ -71,7 +71,7 @@ on:
         description: '内核后缀(留空默认,开头别加连字符,勿加空格等影响指令运行的保留字符)'
         required: false
         type: string
-        default: '-android15-8-gf4dc45704e54-abogki446052083-4k'
+        default: '-android16-8-gf4dc45704e54-abogki446052083-4k'
 
 jobs:
   OnePlus13_gki:
