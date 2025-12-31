@@ -29,7 +29,7 @@ on:
         description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁及 LZ4KD 补丁(0=均不安装,1=安装lz4&zstd补丁,2=安装lz4kd补丁,3=均安装,默认1)'
         required: true
         type: choice
-        default: '0'
+        default: '1'
         options:
           - '0'
           - '1'
@@ -56,7 +56,7 @@ on:
         description: '是否启用ADIOS IO调度器及Re-Kernel支持(0=均不安装,1=安装ADIOS调度器,2=安装Re-Kernel,3=均安装,默认2)'
         required: true
         type: choice
-        default: '0'
+        default: '1'
         options:
           - '0'
           - '1'
