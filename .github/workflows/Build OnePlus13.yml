@@ -478,16 +478,10 @@ jobs:
          patch -p1 --forward < "file_struct_8bytes_align.patch" || true
          patch -p1 --forward < "reduce_cache_pressure.patch" || true
     
-         if [ "$KERNEL_MAJOR" -lt 6 ]; then
-          patch -p1 --forward < "clear_page_16bytes_align.patch" || true
-          echo "正在修改Unicode!"
-          patch -p1 --forward < "unicode_bypass_fix_6.1-.patch" || true
-         else
-          # 对6.1+版本的特殊处理
-          cat "clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward || true
-          echo "正在修改Unicode!"
-          patch -p1 --forward < "unicode_bypass_fix_6.1+.patch" || true
-         fi
+         cat "clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward || true
+         echo "正在修改Unicode!"
+         patch -p1 --forward < "unicode_bypass_fix_6.1+.patch" || true
+         
     
          echo "补丁应用完成！"   
     
