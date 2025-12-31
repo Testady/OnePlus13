@@ -462,18 +462,12 @@ jobs:
          cd kernel_workspace/common
     
           # 设置补丁文件URL前缀
-         PATCH_BASE_URL="https://raw.githubusercontent.com/Testady/OnePlus13/main/patches    
+         PATCH_BASE_URL="https://raw.githubusercontent.com/Testady/OnePlus13/main/patches"    
          curl -s -o optimized_mem_operations.patch "${PATCH_BASE_URL}/optimized_mem_operations.patch"
          curl -s -o file_struct_8bytes_align.patch "${PATCH_BASE_URL}/file_struct_8bytes_align.patch"
          curl -s -o reduce_cache_pressure.patch "${PATCH_BASE_URL}/reduce_cache_pressure.patch"
          curl -s -o clear_page_16bytes_align.patch "${PATCH_BASE_URL}/clear_page_16bytes_align.patch"
-         curl -s -o unicode_bypass_fix_6.1-.patch "${PATCH_BASE_URL}/unicode_bypass_fix_6.1-.patch"
          curl -s -o unicode_bypass_fix_6.1+.patch "${PATCH_BASE_URL}/unicode_bypass_fix_6.1+.patch"
-    
-    
-    
-         KERNEL_MAJOR=$(echo ${{ env.KERNEL_VERSION }} | cut -d. -f1)
-    
          patch -p1 --forward < "optimized_mem_operations.patch" || true
          patch -p1 --forward < "file_struct_8bytes_align.patch" || true
          patch -p1 --forward < "reduce_cache_pressure.patch" || true
