@@ -460,6 +460,7 @@ jobs:
 
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
         run: |
+          git clone https://github.com/Numbersf/Action-Build.git
           PATCH_DIR="${GITHUB_WORKSPACE}/kernel_workspace/Action-Build/patches"
           cd kernel_workspace/kernel_platform/common
           patch -p1 --forward < "${PATCH_DIR}/optimized_mem_operations.patch"
