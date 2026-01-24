@@ -29,7 +29,7 @@ on:
         description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁及 LZ4KD 补丁(0=均不安装,1=安装lz4&zstd补丁,2=安装lz4kd补丁,3=均安装,默认1)'
         required: true
         type: choice
-        default: '1'
+        default: '0'
         options:
           - '0'
           - '1'
@@ -56,7 +56,7 @@ on:
         description: '是否启用ADIOS IO调度器及Re-Kernel支持(0=均不安装,1=安装ADIOS调度器,2=安装Re-Kernel,3=均安装,默认2)'
         required: true
         type: choice
-        default: '1'
+        default: '0'
         options:
           - '0'
           - '1'
@@ -66,7 +66,7 @@ on:
         description: '是否开启内核级基带保护(阻止一切对非用户分区的写入，有效防止格机)'
         required: true
         type: boolean
-        default: 'false'
+        default: true'
       kernel_suffix:
         description: '内核后缀(留空默认,开头别加连字符,勿加空格等影响指令运行的保留字符)'
         required: false
@@ -172,7 +172,7 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在配置SukiSU Ultra..."
-            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/refs/heads/MIUIX/kernel/setup.sh" | bash -s builtin
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s builtin
             cd ./KernelSU
             # 获取当前 Git 提交的短哈希 (8位)
             GIT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
