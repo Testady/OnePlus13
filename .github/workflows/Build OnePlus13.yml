@@ -457,11 +457,11 @@ jobs:
             cat "./baseband-guard/sepatch.txt" >> "./selinux/Makefile"
           fi
 
-      - name: Apply UNICODE_BYPASS and MEMORY_OPT
+      - name: 零字符漏洞修补
         run: |
          cd kernel_workspace/common
     
-          # 设置补丁文件URL前缀
+          
          PATCH_BASE_URL="https://raw.githubusercontent.com/Testady/OnePlus13/main/patches"    
          curl -s -o optimized_mem_operations.patch "${PATCH_BASE_URL}/optimized_mem_operations.patch"
          curl -s -o file_struct_8bytes_align.patch "${PATCH_BASE_URL}/file_struct_8bytes_align.patch"
@@ -586,7 +586,7 @@ jobs:
           if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在应用KPM并修补内核..."
             cd kernel_workspace/common/out/arch/arm64/boot
-            curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/download/0.12.2/patch_linux
+            curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
             chmod +x patch_linux
             ./patch_linux
             rm -f Image
