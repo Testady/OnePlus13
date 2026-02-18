@@ -23,13 +23,13 @@ on:
         type: boolean
         default: 'true'
       kpm_enable:
-        description: '是否开启kpm(builtin-使用(re)sukisu内置kpm, kpn-使用独立kpm实现(支持任意KSU/面具环境); 不需要可保持默认关闭)'
+        description: '是否开启kpm'
         required: true
         type: choice
-        default: 'false'
+        default: 'true'
         options:
           - 'false'
-          - 'builtin'
+          - 'true'
       lz4_enable:
         description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁'
         required: true
@@ -421,7 +421,7 @@ jobs:
          
       - name: 应用KPM并修补内核
         run: |
-          if [[ ${{ github.event.inputs.kpm_enable }} == 'builtin' && ( "${{ github.event.inputs.ksu_type }}" == "sukisu" || "${{ github.event.inputs.ksu_type }}" == "resukisu" ) ]]; then
+          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ( "${{ github.event.inputs.ksu_type }}" == "sukisu" || "${{ github.event.inputs.ksu_type }}" == "resukisu" ) ]]; then
             echo "正在应用KPM并修补内核..."
             cd kernel_workspace/common/out/arch/arm64/boot
             curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
