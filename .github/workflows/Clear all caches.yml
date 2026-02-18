@@ -6,7 +6,7 @@ on:
       confirm:
         description: "输入DELETE确认清理所有缓存"
         required: true
-        default: ""
+        default: "DELETE"
 
 jobs:
   clean-caches:
