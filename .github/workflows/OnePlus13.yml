@@ -25,11 +25,9 @@ on:
       kpm_enable:
         description: '是否开启kpm'
         required: true
-        type: choice
+        type: boolean
         default: 'true'
-        options:
-          - 'false'
-          - 'true'
+        
       lz4_enable:
         description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁'
         required: true
@@ -421,7 +419,7 @@ jobs:
          
       - name: 应用KPM并修补内核
         run: |
-          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ( "${{ github.event.inputs.ksu_type }}" == "sukisu" ]]; then
+          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在应用KPM并修补内核..."
             cd kernel_workspace/common/out/arch/arm64/boot
             curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
