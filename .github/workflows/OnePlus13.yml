@@ -11,12 +11,11 @@ on:
   workflow_dispatch:
     inputs:
       ksu_type:
-        description: 'KernelSU分支(ReSukiSU/SukiSU Ultra)'
+        description: 'KernelSU分支(SukiSU Ultra)'
         required: true
         type: choice
         default: 'sukisu'
         options:
-          - 'resukisu'
           - 'sukisu'
       susfs_enable:
         description: '是否开启susfs'
