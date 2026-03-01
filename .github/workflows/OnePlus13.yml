@@ -231,7 +231,7 @@ jobs:
             cd ./common
             patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
             patch -p1 < 69_hide_stuff.patch || true
-            
+            fi
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
         if: inputs.lz4_enable
         run: |
@@ -245,11 +245,15 @@ jobs:
           git apply -p1 < 001-lz4.patch || true
           patch -p1 < 002-zstd.patch || true
 
+
           
-      - name: 添加SUSFS 配置项
+      - name: 添加 KSU & 其他配置项
         run: |
           cd kernel_workspace
-          
+          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
+          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then   
+          echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
+          fi
           echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -265,14 +269,6 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-      - name: 添加 KSU & 其他配置项
-        run: |
-          cd kernel_workspace
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then   
-          echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
                     
           #添加对 Mountify (backslashxx/mountify) 模块的支持
           echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
