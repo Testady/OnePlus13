@@ -18,7 +18,7 @@ on:
         options:
           - 'sukisu'
       susfs_enable:
-        description: '是否开启susfs(用于增强隐藏环境挂载功能; 可能轻微增加耗电，上游更新导致不稳定时或不需要可关闭)'
+        description: '是否开启susfs'
         required: true
         type: boolean
         default: 'true'
@@ -237,6 +237,7 @@ jobs:
           cd ./common
           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
           patch -p1 < 69_hide_stuff.patch || true
+          cd ..
 
           fi 
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
