@@ -11,14 +11,14 @@ on:
   workflow_dispatch:
     inputs:
       ksu_type:
-        description: 'KernelSU分支(SukiSU Ultra)'
+        description: 'SukiSU Ultra'
         required: true
         type: choice
         default: 'sukisu'
         options:
           - 'sukisu'
       susfs_enable:
-        description: '是否开启susfs'
+        description: 'susfs'
         required: true
         type: boolean
         default: 'true'
@@ -29,22 +29,17 @@ on:
         default: 'true'
         
       lz4_enable:
-        description: '是否安装 lz4 1.10.0+zstd 1.5.7 补丁'
+        description: 'lz4 1.10.0+zstd 1.5.7'
         required: true
         type: boolean
         default: 'true'
       baseband_guard:
-        description: '是否开启内核级基带保护'
+        description: 'bbg防护'
         required: true
         type: boolean
         default: 'true'
-      ccache_update:
-        description: '更新ccache缓存(将本次编译生成的ccache缓存覆盖至仓库缓存，在更改编译配置、源码或需要刷新缓存时开启)'
-        required: true
-        type: boolean
-        default: 'false'
       kernel_suffix:
-        description: '内核后缀(留空默认,开头别加连字符,勿加空格等影响指令运行的保留字符)'
+        description: '内核后缀(留空默认)'
         required: false
         type: string
         default: ''
@@ -101,63 +96,6 @@ jobs:
             sed -i '$i res=$(echo "$res" | sed '\''s/-dirty//g'\'')' "$f"
           done
 
-      - name: 配置ccache目录
-        run: |
-          echo "CCACHE_DIR=$HOME/.ccache_6.6.89" >> $GITHUB_ENV
-          echo "CCACHE_MAXSIZE=3G" >> $GITHUB_ENV
-          echo "当前磁盘空间："
-          df -h
-          echo "当前构建内核版本：6.6.89"
-
-      - name: 载入当前版本内核的 ccache缓存
-        uses: actions/cache@v4
-        id: ccache-restore
-        with:
-          path: ${{ env.CCACHE_DIR }}
-          key: ${{ env.CCACHE_KEY }}-${{ runner.os }}-main
-          restore-keys: |
-            ${{ env.CCACHE_KEY }}-${{ runner.os }}-
-            ${{ env.CCACHE_KEY }}-
-
-      - name: 清除旧 ccache 缓存
-        if: inputs.ccache_update
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "正在清除仓库中的旧 ccache 缓存..."
-          if gh cache delete ${{ env.CCACHE_KEY }}-${{ runner.os }}-main -R ${{ github.repository }}; then
-            echo "成功删除旧的 ccache 缓存！"
-          else
-            echo "旧缓存不存在或已被清理！"
-          fi
-      
-      - name: 初始化并配置ccache
-        run: |
-          # 设置ccache环境变量
-          export CCACHE_COMPILERCHECK="none"
-          export CCACHE_BASEDIR="${{ github.workspace }}"
-          export CCACHE_NOHASHDIR="true"
-          export CCACHE_HARDLINK="true"
-          export CCACHE_DIR="${{ env.CCACHE_DIR }}"
-          export CCACHE_MAXSIZE="${{ env.CCACHE_MAXSIZE }}"
-          
-          # 确保ccache目录存在
-          mkdir -p "$CCACHE_DIR"
-          
-          # 每次运行都重新配置缓存大小
-          echo "配置ccache缓存大小为: $CCACHE_MAXSIZE"
-          ccache -M "$CCACHE_MAXSIZE"
-          ccache -o compression=true
-          
-          # 显示初始缓存状态
-          echo "ccache初始状态:"
-          ccache -s
-          
-          # 如果缓存恢复命中，显示详细信息
-          if [ "${{ steps.ccache-restore.outputs.cache-hit }}" == 'true' ]; then
-            echo "ccache缓存命中详情:"
-            ccache -sv
-          fi
 
       - name: 添加KernelSU
         id: ksu_version
@@ -225,21 +163,18 @@ jobs:
       - name: 应用 KernelSU & SUSFS 补丁
         run: |
           cd kernel_workspace
-          if [[ "${{ github.event.inputs.ksu_type }}" == "sukisu" ]]; then
           echo "正在添加SukiSU Ultra补丁..."
           git clone --depth=1 https://github.com/ShirkNeko/susfs4ksu.git -b gki-android15-6.6
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/patches/69_hide_stuff.patch -O ./common/69_hide_stuff.patch
           cp ./susfs4ksu/kernel_patches/50_add_susfs_in_gki-android15-6.6.patch ./common/
           cp ./susfs4ksu/kernel_patches/fs/* ./common/fs/
           cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-          
-
           cd ./common
+          
           patch -p1 < 50_add_susfs_in_gki-android15-6.6.patch || true
           patch -p1 < 69_hide_stuff.patch || true
           cd ..
 
-          fi 
       - name: 应用lz4 1.10.0 & zstd 1.5.7补丁
         if: inputs.lz4_enable
         run: |
@@ -254,12 +189,17 @@ jobs:
           patch -p1 < 002-zstd.patch || true
           cd ..
           
-      - name: 添加SUSFS 配置项
-        if: inputs.susfs_enable
+          
+      - name: 添加 KSU & 其他配置项
         run: |
           cd kernel_workspace
-          echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
+          if [[ "${{ github.event.inputs.kpm_enable }}" == "true"  ]]; then
+            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
+          fi
+          if [[ "${{ github.event.inputs.susfs_enable }}" == "true" ]]; then
+            echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_SUSFS_HAS_MAGIC_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_AUTO_ADD_SUS_KSU_DEFAULT_MOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -273,16 +213,6 @@ jobs:
           echo "CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_OPEN_REDIRECT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
-          
-      - name: 添加 KSU & 其他配置项
-        run: |
-          cd kernel_workspace
-          echo "CONFIG_KSU=y" >> ./common/arch/arm64/configs/gki_defconfig
-          if [[ ${{ github.event.inputs.kpm_enable }} == 'builtin' && ( "${{ github.event.inputs.ksu_type }}" == "sukisu" || "${{ github.event.inputs.ksu_type }}" == "resukisu" ) ]]; then
-            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          fi
-          if [[ "${{ github.event.inputs.susfs_enable }}" == "false" ]]; then
-            echo "CONFIG_KSU_SUSFS=n" >> ./common/arch/arm64/configs/gki_defconfig
           fi
           #添加对 Mountify (backslashxx/mountify) 模块的支持
           echo "CONFIG_TMPFS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -294,7 +224,6 @@ jobs:
           #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
           
-    
       - name: 零字符漏洞修补
         run: |
          cd kernel_workspace/common
@@ -432,7 +361,7 @@ jobs:
       
       - name: 应用KPM并修补内核
         run: |
-          if [[ ${{ github.event.inputs.kpm_enable }} == 'true' && ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
+          if [[ "${{ github.event.inputs.kpm_enable }}" == "true" ]]; then
             echo "正在应用KPM并修补内核..."
             cd kernel_workspace/common/out/arch/arm64/boot
             curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
@@ -455,8 +384,6 @@ jobs:
           fi
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             KSU_TYPENAME="SukiSU"
-          elif [[ ${{ github.event.inputs.ksu_type }} == "resukisu" ]]; then
-            KSU_TYPENAME="ReSukiSU"
           fi
   
           if [[ -n "${{ github.event.inputs.kernel_suffix }}" ]]; then
