@@ -289,16 +289,7 @@ jobs:
           echo "Clang版本: $CLANG_VERSION"
           echo "LLD版本: $LLD_VERSION"
           pahole_version=$(pahole --version 2>/dev/null | head -n1); [ -z "$pahole_version" ] && echo "pahole版本：未安装" || echo "pahole版本：$pahole_version"
-          
-          export CCACHE_LOGFILE="${{ github.workspace }}/kernel_workspace/ccache.log"
-          export CCACHE_COMPILERCHECK="none"
-          export CCACHE_BASEDIR="${{ github.workspace }}"
-          export CCACHE_NOHASHDIR="true"
-          export CCACHE_HARDLINK="true"
-          export CCACHE_DIR="${{ env.CCACHE_DIR }}"
-          export CCACHE_MAXSIZE="3G"
-          echo "sloppiness = file_stat_matches,include_file_ctime,include_file_mtime,pch_defines,file_macro,time_macros" >> "$CCACHE_DIR/ccache.conf"
-          
+    
           cd kernel_workspace/common
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfakestat.so
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfaketimeMT.so
@@ -310,55 +301,54 @@ jobs:
           SO_DIR=$(pwd)
           export PRELOAD_LIBS="$SO_DIR/libfakestat.so $SO_DIR/libfaketimeMT.so"
           #创建 CC (编译器) 包装器
-          echo '#!/bin/bash' > cc-wrapper
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> cc-wrapper
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> cc-wrapper
-          echo 'export FAKETIME="'$FAKETIME'"' >> cc-wrapper
-          echo 'ccache clang "$@"' >> cc-wrapper
-          #创建 LD (链接器) 包装器
-          echo '#!/bin/bash' > ld-wrapper
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> ld-wrapper
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> ld-wrapper
-          echo 'export FAKETIME="'$FAKETIME'"' >> ld-wrapper
-          echo 'ld.lld "$@"' >> ld-wrapper
-          
-          # 测试时间劫持测试是否正常工作
-          echo "--- [Wrapper Test] 正在创建通用的时间劫持测试脚本 ---"
-          echo '#!/bin/bash' > test-wrapper.sh
-          echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> test-wrapper.sh
-          echo 'export FAKESTAT="'$FAKESTAT'"' >> test-wrapper.sh
-          echo 'export FAKETIME="'$FAKETIME'"' >> test-wrapper.sh
-          echo 'echo ">>> Wrapper 内部环境检查完毕."' >> test-wrapper.sh
-          echo 'exec "$@"' >> test-wrapper.sh # 执行所有传入的参数
-          chmod +x test-wrapper.sh
-          echo "--- [Wrapper Test] 正在测试 (date) 命令 ---"
-          ./test-wrapper.sh date
-          echo "--- [Wrapper Test] 正在测试 (stat) 命令 ---"
-          ./test-wrapper.sh stat ./Makefile
-          echo "--- [Wrapper Test] 测试完毕 ---"
-          chmod +x cc-wrapper ld-wrapper
-          echo "--- 编译前环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
-          echo "--- 编译前环境文件时间戳: ---"
-          LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
-          
-          #在构建内核的同时清除不必要的.NET, Android NDK, Haskell, CodeQL运行库，清理空间且不阻塞后续步骤运行
-          sudo rm -rf /usr/share/dotnet &
-          sudo rm -rf /usr/local/lib/android &
-          sudo rm -rf /opt/ghc &
-          sudo rm -rf /opt/hostedtoolcache/CodeQL &
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
-          
-          # 编译后时间劫持二次校验
-          echo "--- 编译后环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
-          echo "--- 编译后环境文件时间戳: ---"
-          LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
-          echo "内核编译完成！"
-          echo "ccache状态："
-          ccache -s
-          echo "编译后空间:"
-          df -h
-      
+           echo '#!/bin/bash' > cc-wrapper
+           echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> cc-wrapper
+           echo 'export FAKESTAT="'$FAKESTAT'"' >> cc-wrapper
+           echo 'export FAKETIME="'$FAKETIME'"' >> cc-wrapper
+           echo 'clang "$@"' >> cc-wrapper
+           #创建 LD (链接器) 包装器
+           echo '#!/bin/bash' > ld-wrapper
+           echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> ld-wrapper
+           echo 'export FAKESTAT="'$FAKESTAT'"' >> ld-wrapper
+           echo 'export FAKETIME="'$FAKETIME'"' >> ld-wrapper
+           echo 'ld.lld "$@"' >> ld-wrapper
+    
+           # 测试时间劫持测试是否正常工作
+           echo "--- [Wrapper Test] 正在创建通用的时间劫持测试脚本 ---"
+           echo '#!/bin/bash' > test-wrapper.sh
+           echo 'export LD_PRELOAD="'$PRELOAD_LIBS'"' >> test-wrapper.sh
+           echo 'export FAKESTAT="'$FAKESTAT'"' >> test-wrapper.sh
+           echo 'export FAKETIME="'$FAKETIME'"' >> test-wrapper.sh
+           echo 'echo ">>> Wrapper 内部环境检查完毕."' >> test-wrapper.sh
+           echo 'exec "$@"' >> test-wrapper.sh # 执行所有传入的参数
+           chmod +x test-wrapper.sh
+           echo "--- [Wrapper Test] 正在测试 (date) 命令 ---"
+           ./test-wrapper.sh date
+           echo "--- [Wrapper Test] 正在测试 (stat) 命令 ---"
+           ./test-wrapper.sh stat ./Makefile
+           echo "--- [Wrapper Test] 测试完毕 ---"
+           chmod +x cc-wrapper ld-wrapper
+           echo "--- 编译前环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
+           echo "--- 编译前环境文件时间戳: ---"
+           LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
+    
+           #在构建内核的同时清除不必要的.NET, Android NDK, Haskell, CodeQL运行库，清理空间且不阻塞后续步骤运行
+           sudo rm -rf /usr/share/dotnet &
+           sudo rm -rf /usr/local/lib/android &
+           sudo rm -rf /opt/ghc &
+           sudo rm -rf /opt/hostedtoolcache/CodeQL &
+           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="clang" LD="ld.lld"HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
+           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
+    
+           # 编译后时间劫持二次校验
+           echo "--- 编译后环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
+           echo "--- 编译后环境文件时间戳: ---"
+           LD_PRELOAD=$PRELOAD_LIBS stat ./Makefile
+           echo "内核编译完成！"
+           echo "ccache状态："
+           ccache -s
+           echo "编译后空间:"
+           df -h      
       - name: 应用KPM并修补内核
         run: |
           if [[ "${{ github.event.inputs.kpm_enable }}" == "true" ]]; then
