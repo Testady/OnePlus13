@@ -374,8 +374,8 @@ jobs:
           exit 1
          fi
 
-       - name: 上传 AnyKernel3 文件
-         uses: actions/upload-artifact@v4
-         with:
+      - name: 上传zip
+        uses: actions/upload-artifact@v7
+        with:
           name: OnePlus13_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}
           path: ${{ github.workspace }}/kernel_workspace/AnyKernel3/*  
