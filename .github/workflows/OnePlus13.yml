@@ -377,5 +377,5 @@ jobs:
       - name: 上传zip
         uses: actions/upload-artifact@v7
         with:
-          name: OnePlus13_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}
+          name: OnePlus13_${{ github.event.inputs.ksu_type }}_${{ env.KSUVER }}
           path: ${{ github.workspace }}/kernel_workspace/AnyKernel3/*  
