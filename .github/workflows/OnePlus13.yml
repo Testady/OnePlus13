@@ -362,33 +362,20 @@ jobs:
             rm -f Image
             mv oImage Image
           fi
-          
-      - name: 克隆 AnyKernel3 并打包
+      - name: 准备 AnyKernel3 文件
         run: |
-          cd kernel_workspace
-          git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
-          rm -rf ./AnyKernel3/.git
-          cd AnyKernel3
-          cp ../common/out/arch/arm64/boot/Image ./Image
-          if [[ ! -f ./Image ]]; then
-            echo "未找到内核镜像文件，构建可能出错"
-            exit 1
-          fi
-          if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
-            KSU_TYPENAME="SukiSU"
-          fi
-  
-          if [[ -n "${{ github.event.inputs.kernel_suffix }}" ]]; then
-            zip -r ../AnyKernel3_${KSU_TYPENAME}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${{ github.event.inputs.kernel_suffix }}.zip ./*
-          else
-            zip -r ../AnyKernel3_${KSU_TYPENAME}_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}_A15_${{ env.KERNEL_NAME }}.zip ./*
-          fi
+         cd kernel_workspace
+         git clone https://github.com/Kernel-SU/AnyKernel3 --depth=1
+         rm -rf ./AnyKernel3/.git
+         cd AnyKernel3
+         cp ../common/out/arch/arm64/boot/Image ./Image
+         if [[ ! -f ./Image ]]; then
+          echo "未找到内核镜像文件，构建可能出错"
+          exit 1
+         fi
 
-
-      - name: 上传 ZIP 工件
-        uses: actions/upload-artifact@v7
-        with:
-          name: OnePlus13
-          path: ${{ github.workspace }}/kernel_workspace/AnyKernel*.zip
-
-  
+       - name: 上传 AnyKernel3 文件
+         uses: actions/upload-artifact@v4
+         with:
+          name: OnePlus13_${{ env.KSUVER }}_${{ env.KERNEL_VERSION }}
+          path: ${{ github.workspace }}/kernel_workspace/AnyKernel3/*  
