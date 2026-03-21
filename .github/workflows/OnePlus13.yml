@@ -18,7 +18,7 @@ on:
         options:
           - 'sukisu'
       susfs_enable:
-        description: 'susfs'
+        description: '启用susfs'
         required: true
         type: boolean
         default: 'true'
