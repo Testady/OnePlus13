@@ -28,7 +28,11 @@ on:
         required: true
         type: boolean
         default: 'true'
-        
+      build_time:
+        description: '自定义构建时间 (格式 YYYY-MM-DD HH:MM:SS，留空默认 2025-05-25 12:00:00)'
+        required: false
+        type: string
+        default: '2025-05-25 12:00:00'
       lz4_enable:
         description: 'lz4 1.10.0+zstd 1.5.7'
         required: true
@@ -234,7 +238,7 @@ jobs:
           sed -i 's/check_defconfig//' ./common/build.config.gki
           #跳过将uapi标准头安装到 usr/include 目录的不必要操作，节省编译时间
           echo "CONFIG_HEADERS_INSTALL=n" >> ./common/arch/arm64/configs/gki_defconfig
-          
+
       - name: 零字符漏洞修补
         run: |
          cd kernel_workspace/common
@@ -286,7 +290,40 @@ jobs:
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
-          
+
+      - name: 校验构建时间
+        run: |
+         BUILD_TIME="${{ github.event.inputs.build_time }}"
+         echo "Custom BUILD_TIME: $BUILD_TIME"
+         python3 - <<EOF
+         import unicodedata, re
+         s = """$BUILD_TIME"""
+         warn = False
+         out = []
+         space_count = 0
+           for c in s:
+             if c == ' ':
+               space_count += 1
+             if space_count > 1:
+                warn = True
+                out.append(f'\033[31mU+{ord(c):04X}\033[0m ')
+             else:
+                out.append(f'U+{ord(c):04X} ')
+            continue
+            space_count = 0
+             if unicodedata.category(c) == 'Cf' or (c.isspace() and c != ' '):
+              warn = True
+              out.append(f'\033[31mU+{ord(c):04X}\033[0m ')
+             else:
+              out.append(f'U+{ord(c):04X} ')
+              print(''.join(out))
+            if warn:
+               print("::warning title=BUILD_TIME Error::检测到自定义构建时间异常符号，可能影响编译!")
+            if not re.match(r'^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$', s.strip()):
+               print("::error title=BUILD_TIME Format Error::时间格式必须为 YYYY-MM-DD HH:MM:SS")
+            exit(1)
+            EOF 
+            
       - name: 构建内核
         run: |
           WORKDIR="$(pwd)"
@@ -306,8 +343,9 @@ jobs:
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfakestat.so
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfaketimeMT.so
           chmod 777 ./*.so
-          export FAKESTAT="2025-05-25 12:00:00"
-          export FAKETIME="@2025-05-25 13:00:00"
+          BUILD_TIME="${{ github.event.inputs.build_time }}"
+          export FAKESTAT="$BUILD_TIME"
+          export FAKETIME="@$BUILD_TIME"
           echo "FAKESTAT=$FAKESTAT" >> $GITHUB_ENV
           echo "FAKETIME=$FAKETIME" >> $GITHUB_ENV
           SO_DIR=$(pwd)
@@ -350,8 +388,7 @@ jobs:
           sudo rm -rf /opt/ghc &
           sudo rm -rf /opt/hostedtoolcache/CodeQL &
           make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="ccache clang" LD="ld.lld" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error gki_defconfig &&
-          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error Image
-          
+          make -j$(nproc --all) LLVM=1 ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- CC="$(pwd)/cc-wrapper" LD="$(pwd)/ld-wrapper" HOSTLD=ld.lld O=out KCFLAGS+=-O2 KCFLAGS+=-Wno-error KBUILD_BUILD_TIMESTAMP="$BUILD_TIME" Image          
           # 编译后时间劫持二次校验
           echo "--- 编译后环境时间: $(LD_PRELOAD=$PRELOAD_LIBS date) ---"
           echo "--- 编译后环境文件时间戳: ---"
