@@ -417,7 +417,27 @@ jobs:
           ccache -s
           echo "编译后空间:"
           df -h
-      
+
+      - name: 拉取 hwbp_driver.c 并编译模块
+        run: |
+         cd kernel_workspace/common
+         export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang18/bin:$GITHUB_WORKSPACE/kernel_workspace/build-tools/bin:$PATH
+         export LLVM=1
+         # 下载驱动源码
+         wget https://raw.githubusercontent.com/Testady/hernel-6.6/main/hwbp_driver.c
+         # 动态生成 Makefile
+         echo "obj-m := hwbp_driver.o" > Makefile
+         # 编译模块
+         make ARCH=arm64 M=$(pwd) modules
+         # 复制并重命名输出文件
+         cp hwbp_driver.ko $GITHUB_WORKSPACE/6.6.ko
+
+      - name: 上传驱动文件
+        uses: actions/upload-artifact@v4
+        with:
+           name: 6.6
+           path: ${{ github.workspace }}/6.6.ko
+           
       - name: 应用KPM并修补内核
         run: |
           if [[ "${{ github.event.inputs.kpm_enable }}" == "true" ]]; then
