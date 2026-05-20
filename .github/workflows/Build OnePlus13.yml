@@ -421,6 +421,7 @@ jobs:
           cd kernel_workspace/common
           export PATH=$GITHUB_WORKSPACE/kernel_workspace/clang18/bin:$GITHUB_WORKSPACE/kernel_workspace/build-tools/bin:$PATH
           export LLVM=1
+          make ARCH=arm64 gki_defconfig
           make ARCH=arm64 modules_prepare
 
       - name: 拉取 hwbp_driver.c 并编译模块
