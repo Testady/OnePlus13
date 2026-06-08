@@ -32,7 +32,7 @@ on:
         description: '是否启用Droidspaces容器支持(轻量化的完整Linux容器支持;false关闭,standard开启容器+ntsync支持,extend开启更多测试支持项)'
         required: true
         type: choice
-        default: 'standard'
+        default: 'false'
         options:
           - 'false'
           - 'standard'
