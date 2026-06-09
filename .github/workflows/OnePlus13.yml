@@ -421,14 +421,13 @@ jobs:
       - name: 应用KPM并修补内核
         run: |
           if [[ "${{ github.event.inputs.kpm_enable }}" == "true" ]]; then
-          echo "正在应用KP-N并修补内核..."
-          cd kernel_workspace/common/out/arch/arm64/boot
-          wget https://github.com/KernelSU-Next/KPatch-Next/releases/latest/download/kptools-linux
-          wget https://github.com/KernelSU-Next/KPatch-Next/releases/latest/download/kpimg-linux
-          chmod +x ./kptools-linux
-          ./kptools-linux -p -i ./Image -k ./kpimg-linux -o ./oImage
-          rm -f Image
-          mv oImage Image    
+            echo "正在应用KPM并修补内核..."
+            cd kernel_workspace/common/out/arch/arm64/boot
+            curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
+            chmod +x patch_linux
+            ./patch_linux
+            rm -f Image
+            mv oImage Image
           fi
       - name: 准备 AnyKernel3 文件
         run: |
