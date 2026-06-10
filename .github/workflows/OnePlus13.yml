@@ -16,7 +16,7 @@ on:
         type: choice
         default: 'sukisu'
         options:
-          - 'kowsu'
+          - 'sukisu'
           - 'resukisu'
       susfs_enable:
         description: '启用susfs'
@@ -114,7 +114,7 @@ jobs:
           cd kernel_workspace
           if [[ ${{ github.event.inputs.ksu_type }} == "sukisu" ]]; then
             echo "正在配置SukiSU Ultra..."
-            curl -LSs "https://github.com/KOWX712/KernelSU/refs/heads/master/kernel/setup.sh" | bash -s master
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/refs/heads/main/kernel/setup.sh" | bash -s test_br
             cd ./KernelSU
             # 获取当前 Git 提交的短哈希 (8位)
             GIT_COMMIT_HASH=$(git rev-parse --short=8 HEAD)
@@ -123,7 +123,7 @@ jobs:
             # 尝试最多 3 次获取 KernelSU API 版本号
             for i in {1..3}; do
               # 从远程 Kbuild 中提取 KSU_API_VERSION
-              KSU_API_VERSION=$(curl -s "https://github.com/KOWX712/KernelSU/kernel/Kbuild" | 
+              KSU_API_VERSION=$(curl -s "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/test_br/kernel/Kbuild" | 
                 # 查找第一个包含版本定义的行
                 grep -m1 "KSU_VERSION_API :=" | 
                 # 提取等号后的值
@@ -421,13 +421,14 @@ jobs:
       - name: 应用KPM并修补内核
         run: |
           if [[ "${{ github.event.inputs.kpm_enable }}" == "true" ]]; then
-            echo "正在应用KPM并修补内核..."
-            cd kernel_workspace/common/out/arch/arm64/boot
-            curl -LO https://github.com/SukiSU-Ultra/SukiSU_KernelPatch_patch/releases/latest/download/patch_linux
-            chmod +x patch_linux
-            ./patch_linux
-            rm -f Image
-            mv oImage Image
+          echo "正在应用KP-N并修补内核..."
+          cd kernel_workspace/common/out/arch/arm64/boot
+          wget https://github.com/KernelSU-Next/KPatch-Next/releases/latest/download/kptools-linux
+          wget https://github.com/KernelSU-Next/KPatch-Next/releases/latest/download/kpimg-linux
+          chmod +x ./kptools-linux
+          ./kptools-linux -p -i ./Image -k ./kpimg-linux -o ./oImage
+          rm -f Image
+          mv oImage Image    
           fi
       - name: 准备 AnyKernel3 文件
         run: |
