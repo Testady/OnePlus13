@@ -40,7 +40,8 @@ on:
         required: true
         type: boolean
         default: 'true'
-      description: '是否开启网络功能拓展配置'
+      better_net:
+        description: '是否开启网络功能拓展配置'
         required: true
         type: boolean
         default: 'false'
