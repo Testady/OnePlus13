@@ -40,6 +40,11 @@ on:
         required: true
         type: boolean
         default: 'true'
+      rekernel_enable:
+        description: '是否启用Re-Kernel支持(与Freezer/NoActive等软件配合, 提升应用冻结能力)'
+        required: true
+        type: boolean
+        default: ‘true’
       better_net:
         description: '是否开启网络功能拓展配置'
         required: true
@@ -333,6 +338,13 @@ jobs:
           fi
           sed -i 's/${scm_version}//' ./common/scripts/setlocalversion
           echo "CONFIG_LOCALVERSION_AUTO=n" >> ./common/arch/arm64/configs/gki_defconfig
+
+      - name: 启用Re-Kernel支持
+        if: inputs.rekernel_enable
+        run: |
+          echo "正在启用Re-Kernel支持(用于与Freezer,NoActive等软件配合使用,提升冻结后台能力)…"
+          cd kernel_workspace
+          echo "CONFIG_REKERNEL=y" >> ./common/arch/arm64/configs/gki_defconfig
           
       - name: 构建内核
         run: |
