@@ -362,6 +362,7 @@ jobs:
           
           
           cd kernel_workspace/common
+          sed -i 's/^\s*char \*next_path;/const char *next_path;/' tools/lib/bpf/libbpf.c
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfakestat.so
           wget https://github.com/$GITHUB_REPOSITORY/raw/refs/heads/$GITHUB_REF_NAME/lib/libfaketimeMT.so
           chmod 777 ./*.so
